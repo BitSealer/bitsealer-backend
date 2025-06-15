@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Historial de sellados | BitSealer</title>
+
+    <!-- Mini-estilos Bootstrap CDN (opcional) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container py-4">
+
+    <h1 class="mb-4">Historial de sellados</h1>
+
+    <!-- Mensajes flash: hash recién subido o error -->
+    <div th:if="${hashSubido}" class="alert alert-success" role="alert">
+        Hash <code th:text="${hashSubido}"></code> almacenado correctamente.
+    </div>
+    <div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}"></div>
+
+    <!-- Tabla -->
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Archivo</th>
+                <th>SHA-256</th>
+                <th>Fecha</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Recorre la lista hashes -->
+            <tr th:each="h : ${hashes}">
+                <td th:text="${h.id}">1</td>
+                <td th:text="${h.fileName}">document.pdf</td>
+                <td style="font-family:monospace" th:text="${h.sha256}">…</td>
+                <td th:text="${#temporals.format(h.createdAt, 'yyyy-MM-dd HH:mm')}">2025-06-15 18:25</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Botón para subir otro archivo -->
+    <a href="/upload" class="btn btn-primary">Subir nuevo archivo</a>
+
+</body>
+</html>
