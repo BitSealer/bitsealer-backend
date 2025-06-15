@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Subir archivo</title>
+
+  <!-- ===== CSS minimalista incrustado ===== -->
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; display: flex; justify-content: center; align-items: center;
+      background: #f4f4f4; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color:#333;
+    }
+    .card {
+      background:#fff; padding:2rem; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,.1);
+      width: 90%; max-width: 400px;
+    }
+    h1 { text-align:center; margin-bottom:1.5rem; font-size:1.4rem; }
+    .form-group { margin-bottom:1rem; }
+    label { display:block; margin-bottom:.5rem; font-weight:500; }
+    input[type=file] { width:100%; padding:.4rem; }
+    input[type=file]::file-selector-button {
+      background:#4caf50; color:#fff; border:none; padding:.4rem 1rem; border-radius:4px; cursor:pointer;
+    }
+    input[type=file]::file-selector-button:hover { background:#45a049; }
+    button {
+      width:100%; background:#4caf50; color:#fff; border:none; padding:.6rem 0; border-radius:4px; font-size:1rem; cursor:pointer;
+    }
+    button:hover { background:#45a049; }
+    .result {
+      margin-top:1.5rem; background:#f9f9f9; border:1px solid #ddd; border-radius:6px; padding:1rem;
+      word-wrap:break-word;
+    }
+    code { font-family:Consolas,"Courier New",monospace; background:#eaeaea; padding:.2rem .4rem; border-radius:4px; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>Subir archivo</h1>
+
+    <!-- IMPORTANTE: th:action envía al controlador /upload -->
+    <form th:action="@{/upload}" method="post" enctype="multipart/form-data">
+      <div class="form-group">
+        <label for="fileInput">Selecciona un archivo</label>
+        <input type="file" id="fileInput" name="file" required />
+      </div>
+      <button type="submit">Calcular hash</button>
+    </form>
+
+    <!-- Solo aparece si el controlador ha añadido 'hash' al modelo -->
+    <div class="result" th:if="${hash != null}">
+      <p><strong>Hash SHA-256:</strong> <code th:text="${hash}">hash-aqui</code></p>
+    </div>
+  </div>
+
+</body>
+</html>
