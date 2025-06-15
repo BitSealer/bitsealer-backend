@@ -1,59 +1,88 @@
 <!DOCTYPE html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="https://www.thymeleaf.org/extras/spring-security6">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Subir archivo</title>
+  <title>BitSealer · Calcular hash</title>
 
-  <!-- ===== CSS minimalista incrustado ===== -->
+  <!--  💎  Estilos minimalistas — solo CSS incrustado  -->
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      min-height: 100vh; display: flex; justify-content: center; align-items: center;
-      background: #f4f4f4; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color:#333;
+    :root{
+      --bg:#f4f6f7;
+      --brand:#1e88e5;
+      --brand-dark:#1669b5;
+      --text:#333;
+      --radius:10px;
     }
-    .card {
-      background:#fff; padding:2rem; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,.1);
-      width: 90%; max-width: 400px;
+    *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+    body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column}
+    /* ───── Header ───── */
+    .nav{
+      background:var(--brand);color:#fff;padding:.8rem 1.2rem;
+      display:flex;justify-content:space-between;align-items:center;
+      box-shadow:0 2px 6px rgba(0,0,0,.1)
     }
-    h1 { text-align:center; margin-bottom:1.5rem; font-size:1.4rem; }
-    .form-group { margin-bottom:1rem; }
-    label { display:block; margin-bottom:.5rem; font-weight:500; }
-    input[type=file] { width:100%; padding:.4rem; }
-    input[type=file]::file-selector-button {
-      background:#4caf50; color:#fff; border:none; padding:.4rem 1rem; border-radius:4px; cursor:pointer;
+    .nav h1{font-size:1.3rem;letter-spacing:.5px}
+    .nav .user{
+      font-size:.9rem;opacity:.9
     }
-    input[type=file]::file-selector-button:hover { background:#45a049; }
-    button {
-      width:100%; background:#4caf50; color:#fff; border:none; padding:.6rem 0; border-radius:4px; font-size:1rem; cursor:pointer;
+    /* ───── Card ───── */
+    .container{
+      flex:1;display:flex;justify-content:center;align-items:center;padding:1rem
     }
-    button:hover { background:#45a049; }
-    .result {
-      margin-top:1.5rem; background:#f9f9f9; border:1px solid #ddd; border-radius:6px; padding:1rem;
-      word-wrap:break-word;
+    .card{
+      background:#fff;max-width:420px;width:100%;padding:2rem;border-radius:var(--radius);
+      box-shadow:0 4px 12px rgba(0,0,0,.08);color:var(--text)
     }
-    code { font-family:Consolas,"Courier New",monospace; background:#eaeaea; padding:.2rem .4rem; border-radius:4px; }
+    .card h2{text-align:center;margin-bottom:1.6rem;font-size:1.4rem}
+    .form-group{margin-bottom:1.2rem}
+    label{display:block;margin-bottom:.4rem;font-weight:500}
+    input[type=file]{width:100%;padding:.45rem}
+    input[type=file]::file-selector-button{
+      border:none;background:var(--brand);color:#fff;padding:.45rem 1rem;border-radius:6px;cursor:pointer;transition:.2s}
+    input[type=file]::file-selector-button:hover{background:var(--brand-dark)}
+    button{
+      width:100%;padding:.65rem 0;border:none;border-radius:6px;
+      background:var(--brand);color:#fff;font-size:1rem;cursor:pointer;transition:.2s}
+    button:hover{background:var(--brand-dark)}
+    .result{
+      margin-top:1.6rem;padding:1rem;border:1px solid #e0e0e0;border-radius:var(--radius);
+      background:#fafafa;word-break:break-all
+    }
+    code{background:#e7eef5;padding:.2rem .4rem;border-radius:4px}
   </style>
 </head>
 <body>
 
-  <div class="card">
-    <h1>Subir archivo</h1>
+  <!-- ╭─ Barra superior con título + usuario ─╮ -->
+  <header class="nav">
+    <h1>BitSealer</h1>
+    <span class="user" sec:authorize="isAuthenticated()">
+      Sesión: <strong sec:authentication="name"></strong>
+    </span>
+  </header>
 
-    <!-- IMPORTANTE: th:action envía al controlador /upload -->
-    <form th:action="@{/upload}" method="post" enctype="multipart/form-data">
-      <div class="form-group">
-        <label for="fileInput">Selecciona un archivo</label>
-        <input type="file" id="fileInput" name="file" required />
+  <!-- ╭─ Contenido centrado ─╮ -->
+  <main class="container">
+    <section class="card">
+      <h2>Calcular hash SHA-256</h2>
+
+      <form th:action="@{/upload}" method="post" enctype="multipart/form-data">
+        <div class="form-group">
+          <label for="fileInput">Selecciona un archivo</label>
+          <input id="fileInput" name="file" type="file" required />
+        </div>
+        <button type="submit">Subir y calcular</button>
+      </form>
+
+      <!-- Resultado -->
+      <div class="result" th:if="${hash != null}">
+        <p><strong>Hash:</strong> <code th:text="${hash}">valor-hash</code></p>
       </div>
-      <button type="submit">Calcular hash</button>
-    </form>
-
-    <!-- Solo aparece si el controlador ha añadido 'hash' al modelo -->
-    <div class="result" th:if="${hash != null}">
-      <p><strong>Hash SHA-256:</strong> <code th:text="${hash}">hash-aqui</code></p>
-    </div>
-  </div>
+    </section>
+  </main>
 
 </body>
 </html>
