@@ -2,6 +2,9 @@ package com.bitsealer.service;
 
 import com.bitsealer.user.AppUser;
 import com.bitsealer.repository.UserRepository;
+
+import java.util.Optional;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -46,4 +49,9 @@ public class UserService {
         // ── 4. Persistir y devolver ───────────────────────────────────
         return userRepository.save(user);
     }
+
+    public Optional<AppUser> getByUsername(String username) {
+        return userRepository.findByUsername(username);
+    }
+
 }

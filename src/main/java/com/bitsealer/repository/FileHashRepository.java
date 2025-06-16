@@ -1,11 +1,13 @@
 package com.bitsealer.repository;
 
 import com.bitsealer.model.FileHash;
+import com.bitsealer.user.AppUser;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
-@Repository
+import java.util.List;
+
 public interface FileHashRepository extends JpaRepository<FileHash, Long> {
-    // No es necesario agregar métodos por ahora.
-    // JpaRepository ya provee métodos CRUD básicos (save, findAll, findById, delete, etc.)
+
+    /* hashes sólo del propietario, último primero */
+    List<FileHash> findByOwnerOrderByCreatedAtDesc(AppUser owner);
 }

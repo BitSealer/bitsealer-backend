@@ -1,22 +1,26 @@
 package com.bitsealer.model;
 
+import com.bitsealer.user.AppUser;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "file_hashes")
 public class FileHash {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String sha256;
     private String fileName;
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    
+    /* NUEVO 👉 cada hash pertenece a un usuario */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private AppUser owner;
 
-    /* ─────────── Getters y Setters ─────────── */
+    /* getters / setters */
 
     public Long getId() { return id; }
 
@@ -28,4 +32,8 @@ public class FileHash {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    /* 👉 nuevos getter/setter */
+    public AppUser getOwner() { return owner; }
+    public void setOwner(AppUser owner) { this.owner = owner; }
 }
