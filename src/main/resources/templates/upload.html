@@ -1,88 +1,62 @@
+<!-- templates/upload.html -->
 <!DOCTYPE html>
-<html lang="es"
-      xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="https://www.thymeleaf.org/extras/spring-security6">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BitSealer · Calcular hash</title>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="layout/main :: layout(
+          title='Subir archivo',
+          page_content=~{::#content},
+          head_extra=~{::#head_extra},
+          body_end=~{::#body_end})">
 
-  <!--  💎  Estilos minimalistas — solo CSS incrustado  -->
-  <style>
-    :root{
-      --bg:#f4f6f7;
-      --brand:#1e88e5;
-      --brand-dark:#1669b5;
-      --text:#333;
-      --radius:10px;
-    }
-    *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
-    body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column}
-    /* ───── Header ───── */
-    .nav{
-      background:var(--brand);color:#fff;padding:.8rem 1.2rem;
-      display:flex;justify-content:space-between;align-items:center;
-      box-shadow:0 2px 6px rgba(0,0,0,.1)
-    }
-    .nav h1{font-size:1.3rem;letter-spacing:.5px}
-    .nav .user{
-      font-size:.9rem;opacity:.9
-    }
-    /* ───── Card ───── */
-    .container{
-      flex:1;display:flex;justify-content:center;align-items:center;padding:1rem
-    }
-    .card{
-      background:#fff;max-width:420px;width:100%;padding:2rem;border-radius:var(--radius);
-      box-shadow:0 4px 12px rgba(0,0,0,.08);color:var(--text)
-    }
-    .card h2{text-align:center;margin-bottom:1.6rem;font-size:1.4rem}
-    .form-group{margin-bottom:1.2rem}
-    label{display:block;margin-bottom:.4rem;font-weight:500}
-    input[type=file]{width:100%;padding:.45rem}
-    input[type=file]::file-selector-button{
-      border:none;background:var(--brand);color:#fff;padding:.45rem 1rem;border-radius:6px;cursor:pointer;transition:.2s}
-    input[type=file]::file-selector-button:hover{background:var(--brand-dark)}
-    button{
-      width:100%;padding:.65rem 0;border:none;border-radius:6px;
-      background:var(--brand);color:#fff;font-size:1rem;cursor:pointer;transition:.2s}
-    button:hover{background:var(--brand-dark)}
-    .result{
-      margin-top:1.6rem;padding:1rem;border:1px solid #e0e0e0;border-radius:var(--radius);
-      background:#fafafa;word-break:break-all
-    }
-    code{background:#e7eef5;padding:.2rem .4rem;border-radius:4px}
-  </style>
-</head>
+<!-- ───────── CSS/JS extra (vacío por ahora) ───────── -->
+<th:block id="head_extra" th:fragment="head_extra"></th:block>
+
 <body>
+  <!-- ───────── CONTENIDO ESPECÍFICO ───────── -->
+  <div id="content" th:fragment="page_content" class="p-4">
 
-  <!-- ╭─ Barra superior con título + usuario ─╮ -->
-  <header class="nav">
-    <h1>BitSealer</h1>
-    <span class="user" sec:authorize="isAuthenticated()">
-      Sesión: <strong sec:authentication="name"></strong>
-    </span>
-  </header>
+    <h1 class="h3 mb-4 text-gray-800">
+      <i class="fas fa-file-upload"></i> Subir archivo
+    </h1>
 
-  <!-- ╭─ Contenido centrado ─╮ -->
-  <main class="container">
-    <section class="card">
-      <h2>Calcular hash SHA-256</h2>
+    <a th:href="@{/history}" class="btn btn-info mb-3">
+      <i class="fas fa-history fa-sm"></i> Ver historial
+    </a>
 
-      <form th:action="@{/upload}" method="post" enctype="multipart/form-data">
-        <div class="form-group">
-          <label for="fileInput">Selecciona un archivo</label>
-          <input id="fileInput" name="file" type="file" required />
-        </div>
-        <button type="submit">Subir y calcular</button>
-      </form>
-
-      <!-- Resultado -->
-      <div class="result" th:if="${hash != null}">
-        <p><strong>Hash:</strong> <code th:text="${hash}">valor-hash</code></p>
+    <div class="card shadow mb-4">
+      <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">
+          <i class="fas fa-upload fa-sm"></i> Subir un archivo
+        </h6>
       </div>
-    </section>
-  </main>
 
+      <div class="card-body">
+        <p>
+          Seleccione un archivo de su equipo y haga clic en
+          <strong>Subir</strong> para calcular y almacenar su hash.
+        </p>
+
+        <!-- Formulario de subida -->
+        <form th:action="@{/upload}" method="post" enctype="multipart/form-data">
+          <div class="form-group">
+            <label for="fileInput">Archivo</label>
+            <input id="fileInput" class="form-control" type="file" name="file" required>
+          </div>
+
+          <button class="btn btn-primary">
+            <i class="fas fa-upload fa-sm"></i> Subir
+          </button>
+        </form>
+
+        <!-- Resultado flash (si se volvió a /upload directamente) -->
+        <div th:if="${hash}" class="alert alert-info mt-3">
+          <strong>Hash SHA-256:</strong>
+          <code th:text="${hash}" style="word-break:break-all;"></code>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ───────── JS extra al final del body (vacío por ahora) ───────── -->
+  <th:block id="body_end" th:fragment="body_end"></th:block>
 </body>
 </html>

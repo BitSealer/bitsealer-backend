@@ -1,49 +1,82 @@
+<!-- templates/history.html -->
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <title>Historial de sellados | BitSealer</title>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="https://www.thymeleaf.org/extras/spring-security6"
+      th:replace="layout/main :: layout(
+                     title        = 'Historial',
+                     page_content = ~{::#content},
+                     head_extra   = ~{},
+                     body_end     = ~{}
+                  )">
 
-    <!-- Mini-estilos Bootstrap CDN (opcional) -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="container py-4">
+<body>
+  <!-- ╔══════════════ CONTENIDO ESPECÍFICO ══════════════╗ -->
+  <div id="content" th:fragment="page_content" class="p-4">
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <!-- ... mismo contenido de barra de navegaci\u00f3n con BitSealer, enlaces seg\u00fan login ... -->
-    </nav>
-
-    <h1 class="mb-4">Historial de sellados</h1>
-    <p>Bienvenido, <span sec:authentication="name"></span></p>
-    <!-- Mensajes flash: hash recién subido o error -->
-    <div th:if="${hashSubido}" class="alert alert-success" role="alert">
-        Hash <code th:text="${hashSubido}"></code> almacenado correctamente.
+    <!-- cabecera + botón -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+      <h1 class="h3 mb-0 text-gray-800">
+        <i class="fas fa-history fa-sm"></i> Historial de sellados
+      </h1>
+      <a th:href="@{/upload}" class="btn btn-primary btn-sm shadow-sm">
+        <i class="fas fa-file-upload fa-sm text-white-50"></i> Subir nuevo archivo
+      </a>
     </div>
-    <div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}"></div>
 
-    <!-- Tabla -->
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>ID</th>
+    <!-- saludo -->
+    <p class="mb-4">
+      ¡Hola <strong sec:authentication="name"></strong>!  
+      Aquí tienes los documentos que has sellado con BitSealer.
+    </p>
+
+    <!-- alertas flash -->
+    <div th:if="${hashSubido}" class="alert alert-success shadow-sm">
+      Hash <code th:text="${hashSubido}"></code> almacenado correctamente.
+    </div>
+    <div th:if="${error}" class="alert alert-danger shadow-sm" th:text="${error}"></div>
+
+    <!-- tabla -->
+    <div class="card shadow mb-4">
+      <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">
+          <i class="fas fa-list fa-sm"></i> Tus archivos sellados
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="text-center" style="width:70px;">ID</th>
                 <th>Archivo</th>
                 <th>SHA-256</th>
-                <th>Fecha</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Recorre la lista hashes -->
-            <tr th:each="h : ${hashes}">
-                <td th:text="${h.id}">1</td>
-                <td th:text="${h.fileName}">document.pdf</td>
-                <td style="font-family:monospace" th:text="${h.sha256}">…</td>
-                <td th:text="${#temporals.format(h.createdAt, 'yyyy-MM-dd HH:mm')}">2025-06-15 18:25</td>
-            </tr>
-        </tbody>
-    </table>
+                <th style="width:170px;">Fecha</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="h : ${hashes}">
+                <td class="text-center" th:text="${h.id}">1</td>
+                <td th:text="${h.fileName}">ejemplo.pdf</td>
+                <td class="font-monospace" th:text="${h.sha256}"
+                    style="word-break: break-all;">hash…</td>
+                <td th:text="${#temporals.format(h.createdAt,'yyyy-MM-dd HH:mm')}">
+                  2025-06-15 18:25
+                </td>
+              </tr>
 
-    <!-- Botón para subir otro archivo -->
-    <a href="/upload" class="btn btn-primary">Subir nuevo archivo</a>
+              <!-- mensaje “vacío” -->
+              <tr th:if="${hashes.empty}">
+                <td colspan="4" class="text-center text-muted">
+                  Aún no has sellado ningún archivo.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 
+  </div>
+  <!-- ╚══════════════════════════════════════════════════╝ -->
 </body>
 </html>
