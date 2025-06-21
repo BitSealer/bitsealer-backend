@@ -1,14 +1,16 @@
 package com.bitsealer;
 
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
 
+/**
+ * Controlador de “vistas muertas” que no
+ * requieren lógica. De momento lo vaciamos
+ * para evitar duplicados.
+ */
 @Controller
 public class ViewController {
-
-    @GetMapping("/")
-    public String showUploadForm() {
-        // Este nombre debe coincidir con el archivo HTML: upload.html
-        return "upload";
-    }
+    /*  Sin @GetMapping aquí.
+        (Si en el futuro necesitas una ruta
+         extra que no choque con ninguna otra,
+         la añades.)                                        */
 }

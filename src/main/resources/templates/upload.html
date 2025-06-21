@@ -1,17 +1,19 @@
 <!-- templates/upload.html -->
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-      th:replace="layout/main :: layout(
-          title='Subir archivo',
-          page_content=~{::#content},
-          head_extra=~{::#head_extra},
-          body_end=~{::#body_end})">
+      th:with="activePage='upload'"
+      th:replace="~{layout/main :: layout(
+          title        = 'Subir archivo',
+          page_content = ~{::#content},
+          head_extra   = ~{::#head_extra},
+          body_end     = ~{::#body_end},
+          activePage   = ${activePage}
+      )}">
 
-<!-- ───────── CSS/JS extra (vacío por ahora) ───────── -->
+<!-- Bloque opcional de CSS extra -->
 <th:block id="head_extra" th:fragment="head_extra"></th:block>
 
 <body>
-  <!-- ───────── CONTENIDO ESPECÍFICO ───────── -->
   <div id="content" th:fragment="page_content" class="p-4">
 
     <h1 class="h3 mb-4 text-gray-800">
@@ -31,11 +33,9 @@
 
       <div class="card-body">
         <p>
-          Seleccione un archivo de su equipo y haga clic en
-          <strong>Subir</strong> para calcular y almacenar su hash.
+          Seleccione un archivo y pulse <strong>Subir</strong> para calcular y guardar su hash.
         </p>
 
-        <!-- Formulario de subida -->
         <form th:action="@{/upload}" method="post" enctype="multipart/form-data">
           <div class="form-group">
             <label for="fileInput">Archivo</label>
@@ -47,7 +47,6 @@
           </button>
         </form>
 
-        <!-- Resultado flash (si se volvió a /upload directamente) -->
         <div th:if="${hash}" class="alert alert-info mt-3">
           <strong>Hash SHA-256:</strong>
           <code th:text="${hash}" style="word-break:break-all;"></code>
@@ -56,7 +55,7 @@
     </div>
   </div>
 
-  <!-- ───────── JS extra al final del body (vacío por ahora) ───────── -->
+  <!-- Bloque opcional de JS extra -->
   <th:block id="body_end" th:fragment="body_end"></th:block>
 </body>
 </html>

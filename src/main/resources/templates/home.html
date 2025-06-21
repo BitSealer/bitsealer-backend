@@ -1,0 +1,96 @@
+<!-- templates/home.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:with="activePage='home'"
+      th:replace="~{layout/main :: layout(
+          title        = 'Inicio',
+          page_content = ~{::#content},
+          head_extra   = ~{},
+          body_end     = ~{},
+          activePage   = ${activePage}
+      )}">
+
+<head>
+    <!-- ──────── Título de la pestaña ──────── -->
+    <th:block id="title" th:fragment="title">Inicio</th:block>
+
+    <!-- ──────── Estilos opcionales para esta página ──────── -->
+    <th:block id="head_extra" th:fragment="head_extra">
+        <style>
+            .hero         { padding: 4rem 0; }
+            .feature-icon { font-size: 2.5rem; }
+        </style>
+    </th:block>
+</head>
+
+<body>
+    <!-- ─────────────────────── Contenido específico ─────────────────────── -->
+    <div id="content" th:fragment="page_content" class="p-4">
+
+        <!-- ===== Hero / Cabecera principal ===== -->
+        <section class="hero text-center mb-5">
+            <h1 class="display-4 font-weight-bold text-primary mb-3">BitSealer</h1>
+            <p class="lead mb-4">
+                Sellado digital de archivos con huellas SHA-256 y custodia segura.<br>
+                Garantiza la integridad, fecha y autoría de cualquier documento en segundos.
+            </p>
+
+            <a class="btn btn-lg btn-primary shadow-sm" th:href="@{/upload}">
+                <i class="fas fa-file-upload mr-2"></i> Empezar a sellar
+            </a>
+        </section>
+
+        <!-- ===== Tres ventajas clave ===== -->
+        <section class="row text-center">
+            <!-- Integridad -->
+            <div class="col-md-4 mb-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <i class="fas fa-lock feature-icon text-primary mb-3"></i>
+                        <h5 class="card-title">Integridad garantizada</h5>
+                        <p class="card-text">
+                            Cada archivo genera un hash SHA-256 inmutable. Cualquier alteración se detecta al instante.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Historial -->
+            <div class="col-md-4 mb-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <i class="fas fa-history feature-icon text-primary mb-3"></i>
+                        <h5 class="card-title">Historial trazable</h5>
+                        <p class="card-text">
+                            Consulta cuándo, quién y qué documentos han sido sellados, todo ordenado cronológicamente.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seguridad -->
+            <div class="col-md-4 mb-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <i class="fas fa-user-shield feature-icon text-primary mb-3"></i>
+                        <h5 class="card-title">Acceso seguro</h5>
+                        <p class="card-text">
+                            Autenticación con Spring&nbsp;Security. Cada usuario visualiza únicamente sus propios sellados.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== Llamado a la acción para desarrolladores ===== -->
+        <div class="alert alert-info shadow-sm mt-5" role="alert">
+            ¿Eres desarrollador? BitSealer está construido con <strong>Spring&nbsp;Boot 3</strong>,
+            <strong>Thymeleaf 3</strong> y <strong>SB Admin 2</strong>. ¡Clona el repo y contribuye!
+        </div>
+    </div>
+    <!-- /#content -->
+
+    <!-- ──────── JS opcional para esta página ──────── -->
+    <th:block id="body_end" th:fragment="body_end"></th:block>
+</body>
+</html>

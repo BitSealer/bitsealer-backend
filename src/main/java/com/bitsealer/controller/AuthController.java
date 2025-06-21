@@ -44,19 +44,18 @@ public class AuthController {
             BindingResult result,
             Model model) {
 
-        // Validación de campos (si añades anotaciones en AppUser)
         if (result.hasErrors()) {
             return "register";
         }
 
         try {
-            userService.registerUser(userForm);   // guarda en BD
+            userService.registerUser(userForm);
         } catch (IllegalArgumentException ex) {
             model.addAttribute("error", ex.getMessage());
             return "register";
         }
 
-        // Todo OK ➜ volvemos al login con aviso “registered”
+        // Todo OK → volvemos al login con indicador ?registered
         return "redirect:/login?registered";
     }
 }

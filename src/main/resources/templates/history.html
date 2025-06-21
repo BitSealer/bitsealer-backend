@@ -2,18 +2,18 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="https://www.thymeleaf.org/extras/spring-security6"
-      th:replace="layout/main :: layout(
-                     title        = 'Historial',
-                     page_content = ~{::#content},
-                     head_extra   = ~{},
-                     body_end     = ~{}
-                  )">
+      th:with="activePage='history'"
+      th:replace="~{layout/main :: layout(
+          title        = 'Historial',
+          page_content = ~{::#content},
+          head_extra   = ~{},
+          body_end     = ~{},
+          activePage   = ${activePage}
+      )}">
 
 <body>
-  <!-- ╔══════════════ CONTENIDO ESPECÍFICO ══════════════╗ -->
   <div id="content" th:fragment="page_content" class="p-4">
 
-    <!-- cabecera + botón -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
       <h1 class="h3 mb-0 text-gray-800">
         <i class="fas fa-history fa-sm"></i> Historial de sellados
@@ -23,19 +23,16 @@
       </a>
     </div>
 
-    <!-- saludo -->
     <p class="mb-4">
-      ¡Hola <strong sec:authentication="name"></strong>!  
+      ¡Hola <strong sec:authentication="name">usuario</strong>!
       Aquí tienes los documentos que has sellado con BitSealer.
     </p>
 
-    <!-- alertas flash -->
     <div th:if="${hashSubido}" class="alert alert-success shadow-sm">
       Hash <code th:text="${hashSubido}"></code> almacenado correctamente.
     </div>
     <div th:if="${error}" class="alert alert-danger shadow-sm" th:text="${error}"></div>
 
-    <!-- tabla -->
     <div class="card shadow mb-4">
       <div class="card-header py-3">
         <h6 class="m-0 font-weight-bold text-primary">
@@ -57,14 +54,10 @@
               <tr th:each="h : ${hashes}">
                 <td class="text-center" th:text="${h.id}">1</td>
                 <td th:text="${h.fileName}">ejemplo.pdf</td>
-                <td class="font-monospace" th:text="${h.sha256}"
-                    style="word-break: break-all;">hash…</td>
-                <td th:text="${#temporals.format(h.createdAt,'yyyy-MM-dd HH:mm')}">
-                  2025-06-15 18:25
-                </td>
+                <td class="font-monospace" th:text="${h.sha256}" style="word-break:break-all;">hash…</td>
+                <td th:text="${#temporals.format(h.createdAt,'yyyy-MM-dd HH:mm')}">2025-06-15 18:25</td>
               </tr>
 
-              <!-- mensaje “vacío” -->
               <tr th:if="${hashes.empty}">
                 <td colspan="4" class="text-center text-muted">
                   Aún no has sellado ningún archivo.
@@ -77,6 +70,5 @@
     </div>
 
   </div>
-  <!-- ╚══════════════════════════════════════════════════╝ -->
 </body>
 </html>
