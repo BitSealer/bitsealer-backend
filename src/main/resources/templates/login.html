@@ -12,6 +12,27 @@
     <!-- SB Admin 2 – CSS principal -->
     <link th:href="@{/vendor/fontawesome-free/css/all.min.css}" rel="stylesheet">
     <link th:href="@{/css/sb-admin-2.min.css}"         rel="stylesheet">
+
+    <!-- Estilos exclusivos del login -->
+    <style>
+        /* Fondo general con degradado suave */
+        body.bg-gradient-primary {
+            background: linear-gradient(135deg, #263ff1 0%, #1b1d3b 100%);
+        }
+
+        /* Panel izquierdo con imagen */
+        .bg-login-image {
+            background: linear-gradient(rgba(10, 15, 70, .55),
+                                        rgba(10, 15, 70, .55)),
+                        url('/img/login-side.jpg') center/cover no-repeat;
+        }
+
+        /* Pequeño efecto al pasar el ratón sobre el botón */
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 .5rem 1rem rgba(0,0,0,.2);
+        }
+    </style>
 </head>
 
 <body class="bg-gradient-primary">
@@ -21,68 +42,76 @@
     <!--  Login Row  -->
     <div class="row justify-content-center">
 
-        <div class="col-xl-5 col-lg-6 col-md-8">
+        <div class="col-xl-9 col-lg-10">
 
             <div class="card o-hidden border-0 shadow-lg my-5">
-                <div class="card-body p-5">
+                <div class="row no-gutters">
+                    <!-- Imagen / branding -->
+                    <div class="col-lg-6 d-none d-lg-block bg-login-image"></div>
 
-                    <!--  Flash mensajes  -->
-                    <div th:if="${param.error}" class="alert alert-danger small">
-                        <i class="fas fa-exclamation-circle"></i> Usuario o contraseña incorrectos
-                    </div>
-                    <div th:if="${param.logout}" class="alert alert-success small">
-                        <i class="fas fa-check-circle"></i> Has cerrado sesión correctamente
-                    </div>
-                    <div th:if="${param.registerSuccess}" class="alert alert-info small">
-                        <i class="fas fa-user-check"></i> Registro exitoso. Ya puedes iniciar sesión
-                    </div>
+                    <!-- Formulario -->
+                    <div class="col-lg-6">
+                        <div class="card-body p-5">
 
-                    <!--  Heading  -->
-                    <div class="text-center">
-                        <h1 class="h4 text-gray-900 mb-4">
-                            <i class="fas fa-lock mr-1 text-primary"></i>
-                            Bienvenido a <strong>BitSealer</strong>
-                        </h1>
-                    </div>
+                            <!--  Flash mensajes  -->
+                            <div th:if="${param.error}" class="alert alert-danger small">
+                                <i class="fas fa-exclamation-circle"></i> Usuario o contraseña incorrectos
+                            </div>
+                            <div th:if="${param.logout}" class="alert alert-success small">
+                                <i class="fas fa-check-circle"></i> Has cerrado sesión correctamente
+                            </div>
+                            <div th:if="${param.registerSuccess}" class="alert alert-info small">
+                                <i class="fas fa-user-check"></i> Registro exitoso. Ya puedes iniciar sesión
+                            </div>
 
-                    <!--  Formulario de login  -->
-                    <form th:action="@{/login}" method="post" class="user">
+                            <!--  Heading  -->
+                            <div class="text-center">
+                                <h1 class="h4 text-gray-900 mb-4">
+                                    <i class="fas fa-lock mr-1 text-primary"></i>
+                                    Bienvenido a <strong>BitSealer</strong>
+                                </h1>
+                            </div>
 
-                        <div class="form-group">
-                            <input id="username" name="username"
-                                   type="text"
-                                   class="form-control form-control-user"
-                                   placeholder="Nombre de usuario"
-                                   required>
-                        </div>
+                            <!--  Formulario de login  -->
+                            <form th:action="@{/login}" method="post" class="user">
 
-                        <div class="form-group">
-                            <input id="password" name="password"
-                                   type="password"
-                                   class="form-control form-control-user"
-                                   placeholder="Contraseña"
-                                   required>
-                        </div>
+                                <div class="form-group">
+                                    <input id="username" name="username"
+                                           type="text"
+                                           class="form-control form-control-user"
+                                           placeholder="Nombre de usuario"
+                                           required>
+                                </div>
 
-                        <button type="submit"
-                                class="btn btn-primary btn-user btn-block">
-                            <i class="fas fa-sign-in-alt fa-sm fa-fw mr-2"></i>
-                            Entrar
-                        </button>
-                    </form>
+                                <div class="form-group">
+                                    <input id="password" name="password"
+                                           type="password"
+                                           class="form-control form-control-user"
+                                           placeholder="Contraseña"
+                                           required>
+                                </div>
 
-                    <hr>
+                                <button type="submit"
+                                        class="btn btn-primary btn-user btn-block">
+                                    <i class="fas fa-sign-in-alt fa-sm fa-fw mr-2"></i>
+                                    Entrar
+                                </button>
+                            </form>
 
-                    <div class="text-center">
-                        <span class="small">¿No tienes cuenta?</span>
-                        <a class="small" th:href="@{/register}">Regístrate aquí</a>
-                    </div>
+                            <hr>
 
-                </div> <!-- /card-body -->
-            </div> <!-- /card -->
+                            <div class="text-center">
+                                <span class="small">¿No tienes cuenta?</span>
+                                <a class="small" th:href="@{/register}">Regístrate aquí</a>
+                            </div>
 
-        </div>
-    </div>
+                        </div> <!-- /card-body -->
+                    </div>   <!-- /col formulario -->
+                </div>       <!-- /row no-gutters -->
+            </div>           <!-- /card -->
+
+        </div> <!-- /col -->
+    </div> <!-- /row -->
 
 </div>  <!-- /container -->
 
