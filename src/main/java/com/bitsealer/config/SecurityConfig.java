@@ -71,8 +71,8 @@ public class SecurityConfig {
 
             /* 4)  Logout */
             .logout(logout -> logout
-                .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
-                .logoutSuccessUrl("/home")
+                .logoutUrl("/logout")       // ← URL que recibirá el POST
+                .logoutSuccessUrl("/home")  // ← adonde redirigirá tras cerrar sesión
                 .permitAll()
             );
 
