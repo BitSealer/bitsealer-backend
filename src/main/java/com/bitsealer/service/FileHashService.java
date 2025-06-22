@@ -1,9 +1,10 @@
 package com.bitsealer.service;
 
+import com.bitsealer.model.AppUser;
 import com.bitsealer.model.FileHash;
 import com.bitsealer.repository.FileHashRepository;
 import com.bitsealer.repository.UserRepository;
-import com.bitsealer.user.AppUser;
+
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 

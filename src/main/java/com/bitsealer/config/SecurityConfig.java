@@ -1,4 +1,4 @@
-package com.bitsealer.security;
+package com.bitsealer.config;
 
 import com.bitsealer.service.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;

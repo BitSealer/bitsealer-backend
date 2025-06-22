@@ -1,4 +1,4 @@
-package com.bitsealer;
+package com.bitsealer.controller;
 
 import org.springframework.stereotype.Controller;
 

@@ -1,6 +1,5 @@
 package com.bitsealer.model;
 
-import com.bitsealer.user.AppUser;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 

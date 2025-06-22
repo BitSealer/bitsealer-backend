@@ -1,8 +1,9 @@
 package com.bitsealer.repository;
 
-import com.bitsealer.user.AppUser;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+
+import com.bitsealer.model.AppUser;
 
 import java.util.Optional;
 

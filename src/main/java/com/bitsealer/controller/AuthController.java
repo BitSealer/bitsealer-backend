@@ -1,6 +1,6 @@
 package com.bitsealer.controller;
 
-import com.bitsealer.user.AppUser;
+import com.bitsealer.model.AppUser;
 import com.bitsealer.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;

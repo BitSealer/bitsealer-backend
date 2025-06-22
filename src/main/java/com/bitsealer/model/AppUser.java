@@ -1,4 +1,4 @@
-package com.bitsealer.user;
+package com.bitsealer.model;
 
 import jakarta.persistence.*;
 import java.io.Serializable;

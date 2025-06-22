@@ -1,8 +1,8 @@
-package com.bitsealer;
+package com.bitsealer.controller;
 
+import com.bitsealer.model.AppUser;
 import com.bitsealer.model.FileHash;
 import com.bitsealer.service.FileHashService;
-import com.bitsealer.user.AppUser;
 import com.bitsealer.service.UserService;
 
 import org.apache.commons.codec.digest.DigestUtils;

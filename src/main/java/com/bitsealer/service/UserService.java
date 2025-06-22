@@ -1,6 +1,6 @@
 package com.bitsealer.service;
 
-import com.bitsealer.user.AppUser;
+import com.bitsealer.model.AppUser;
 import com.bitsealer.repository.UserRepository;
 
 import java.util.Optional;
