@@ -1,7 +1,7 @@
 package com.bitsealer.controller;
 
 import com.bitsealer.dto.FileUploadRequest;          // ‖ nuevo
-import com.bitsealer.model.FileHash;               // (si ya cambiaste a entity)
+//import com.bitsealer.model.FileHash;               // (si ya cambiaste a entity)
 import com.bitsealer.model.AppUser;                // idem
 import com.bitsealer.service.FileHashService;
 import com.bitsealer.service.UserService;
@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.ModelAttribute; // ‖ nuevo
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.List;
+//import java.util.List;
 
 @Controller
 public class FileUploadController {
