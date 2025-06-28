@@ -1,0 +1,30 @@
+
+services:
+  db:
+    image: postgres:14-alpine        # usa Postgres 14
+    container_name: bitsealer-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: filehashdb
+      POSTGRES_USER: filehashuser
+      POSTGRES_PASSWORD: 1234
+    ports:
+      - "5432:5432"                  # opcional: acceder desde el host
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  app:
+    build: .                         # usa Dockerfile para compilar
+    container_name: bitsealer-app
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/filehashdb
+      SPRING_DATASOURCE_USERNAME: filehashuser
+      SPRING_DATASOURCE_PASSWORD: 1234
+    ports:
+      - "8080:8080"
+
+volumes:
+  db_data:   # volumen nombrado: los datos de Postgres viven fuera del contenedor
