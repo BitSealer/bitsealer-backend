@@ -1,81 +1,80 @@
 package com.bitsealer.config;
 
 import com.bitsealer.service.CustomUserDetailsService;
+import com.bitsealer.security.jwt.JwtAuthFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-//import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.cors.CorsConfiguration;
 
-/**
- * Configuración de Spring-Security:
- *  ─ UserDetailsService  ➜ autenticación/roles           (inyectado)
- *  ─ PasswordEncoder     ➜ comparar contraseñas           (inyectado)
- *  ─ SecurityFilterChain ➜ reglas de acceso a URL         (este fichero)
- */
+import java.util.Arrays;
+import java.util.List;
+
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
+    private final JwtAuthFilter jwtAuthFilter;
 
     @Autowired
     public SecurityConfig(CustomUserDetailsService userDetailsService,
-                          PasswordEncoder passwordEncoder) {
+                          PasswordEncoder passwordEncoder,
+                          JwtAuthFilter jwtAuthFilter) {
         this.userDetailsService = userDetailsService;
         this.passwordEncoder   = passwordEncoder;
+        this.jwtAuthFilter     = jwtAuthFilter;
     }
 
-    /* ─────────────────── Autenticación ─────────────────── */
-    @Autowired
-    public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
-        auth.userDetailsService(userDetailsService)
-            .passwordEncoder(passwordEncoder);
+    // Autenticación: register CustomUserDetailsService and PasswordEncoder
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
     }
 
-    /* ─────────────────── Autorización ─────────────────── */
+    // Autorización: definir las reglas de seguridad HTTP
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-
         http
-            /* 1)  CSRF desactivado para simplificar (en producción conviene habilitarlo) */
             .csrf(csrf -> csrf.disable())
-
-            /* 2)  Reglas de acceso */
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-
-                /* 2-A  ─ Rutas públicas ───────────────────────────────── */
-                .requestMatchers(
-                        "/", "/home",                     // portada
-                        "/login", "/register",            // auth públicas
-                        "/css/**", "/js/**", "/img/**",   // recursos estáticos
-                        "/vendor/**", "/webjars/**"       // librerías front (SB Admin 2, etc.)
-                ).permitAll()
-
-                /* 2-B  ─ Resto: requiere sesión ───────────────────────── */
+                // Permitir sin auth los endpoints públicos
+                .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+                // (Si el backend aún sirviera contenido estático, se permitirían GET a /index.html, /static/**, etc.)
+                .requestMatchers(HttpMethod.GET, "/", "/index.html").permitAll()
+                // Cualquier otra petición a /api requiere autenticación
                 .anyRequest().authenticated()
-            )
-
-            /* 3)  Form-login */
-            .formLogin(form -> form
-                .loginPage("/login")           // tu plantilla personalizada
-                .loginProcessingUrl("/login")  // acción <form>
-                .defaultSuccessUrl("/", true)  // al loguearse vuelve a la home
-                .permitAll()
-            )
-
-            /* 4)  Logout */
-            .logout(logout -> logout
-                .logoutUrl("/logout")       // ← URL que recibirá el POST
-                .logoutSuccessUrl("/home")  // ← adonde redirigirá tras cerrar sesión
-                .permitAll()
             );
-
+        // Insertar el filtro JWT antes del filtro de autenticación por contraseña de Spring
+        http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
+    }
+
+    // Configuración global de CORS para permitir el front
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        // Origins permitidos - ajustar según el despliegue
+        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        config.setAllowedMethods(Arrays.asList("GET","POST","PUT","DELETE","OPTIONS"));
+        config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        config.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 }

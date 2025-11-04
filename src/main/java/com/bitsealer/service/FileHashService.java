@@ -6,64 +6,59 @@ import com.bitsealer.model.AppUser;
 import com.bitsealer.model.FileHash;
 import com.bitsealer.repository.FileHashRepository;
 import com.bitsealer.repository.UserRepository;
-
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 public class FileHashService {
 
     private final FileHashRepository hashRepo;
-    private final UserRepository     userRepo;
-    private final FileHashMapper     mapper;      // ← nuevo
+    private final UserRepository userRepo;
+    private final FileHashMapper mapper;
 
     public FileHashService(FileHashRepository hashRepo,
-                           UserRepository userRepo,
-                           FileHashMapper mapper) {
+                            UserRepository userRepo,
+                            FileHashMapper mapper) {
         this.hashRepo = hashRepo;
         this.userRepo = userRepo;
         this.mapper   = mapper;
     }
 
-    /* --------------------------------------------------------- */
-    /* 1) Métodos que devuelven DTOs para la vista                */
-    /* --------------------------------------------------------- */
-    public List<FileHashDto> findDtosByUser(AppUser owner) {
-        return mapper.toDto(hashRepo.findByOwnerOrderByCreatedAtDesc(owner));
-    }
-
-    public List<FileHashDto> listMineDtos() {
-        return mapper.toDto(hashRepo.findByOwnerOrderByCreatedAtDesc(getCurrentUser()));
-    }
-
-    /* --------------------------------------------------------- */
-    /* 2) Guardar desde archivo                                  */
-    /* --------------------------------------------------------- */
-    public FileHash saveForUser(AppUser owner, MultipartFile file) throws IOException {
+    /**
+     * Guarda un archivo para el usuario actual (tomado del SecurityContext).
+     */
+    public FileHashDto saveForCurrentUser(MultipartFile file) throws IOException {
+        AppUser owner = getCurrentUser();
+        // Calcular SHA-256 del archivo
         String sha256 = DigestUtils.sha256Hex(file.getInputStream());
-        return saveForUser(owner, sha256, file.getOriginalFilename());
-    }
-
-    public FileHash saveForUser(AppUser owner, String sha256, String fileName) {
+        // Crear entidad y guardar
         FileHash fh = new FileHash();
-        fh.setOwner(owner);
         fh.setSha256(sha256);
-        fh.setFileName(fileName);
-        return hashRepo.save(fh);
+        fh.setFileName(file.getOriginalFilename());
+        fh.setOwner(owner);
+        fh.setCreatedAt(LocalDateTime.now());
+        FileHash saved = hashRepo.save(fh);
+        return mapper.toDto(saved);
     }
 
-    /* --------------------------------------------------------- */
-    /* 3) Helper: usuario autenticado                            */
-    /* --------------------------------------------------------- */
+    /**
+     * Lista los archivos del usuario actual, en orden descendente por fecha.
+     */
+    public List<FileHashDto> listMineDtos() {
+        AppUser current = getCurrentUser();
+        List<FileHash> files = hashRepo.findByOwnerOrderByCreatedAtDesc(current);
+        return mapper.toDto(files);
+    }
+
+    // Helper para obtener el usuario autenticado actual desde SecurityContext
     private AppUser getCurrentUser() {
-        String username = SecurityContextHolder.getContext()
-                                               .getAuthentication()
-                                               .getName();
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepo.findByUsername(username).orElseThrow();
     }
 }

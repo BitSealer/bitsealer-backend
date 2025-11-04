@@ -1,85 +1,60 @@
 package com.bitsealer.controller;
 
-import com.bitsealer.dto.FileUploadRequest;          // ‖ nuevo
-//import com.bitsealer.model.FileHash;               // (si ya cambiaste a entity)
-import com.bitsealer.model.AppUser;                // idem
+import com.bitsealer.dto.FileHashDto;
 import com.bitsealer.service.FileHashService;
 import com.bitsealer.service.UserService;
-
-import jakarta.validation.Valid;                     // ‖ nuevo
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;   // ‖ nuevo
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute; // ‖ nuevo
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-//import java.util.List;
+import java.io.IOException;
+import java.util.List;
 
-@Controller
+@RestController
+@RequestMapping("/api/files")
 public class FileUploadController {
 
     private final FileHashService fileHashService;
-    private final UserService     userService;
+    private final UserService userService;
 
-    public FileUploadController(FileHashService fileHashService,
-                                UserService userService) {
+    @Autowired
+    public FileUploadController(FileHashService fileHashService, UserService userService) {
         this.fileHashService = fileHashService;
         this.userService     = userService;
     }
 
-    /*────────────────────────────── 1) Formulario de subida ──────────────────────────────*/
-    @GetMapping("/upload")
-    public String mostrarFormulario(Model model) {
-        model.addAttribute("fileUploadRequest", new FileUploadRequest());   // ‖ para <form th:object>
-        return "upload";                       // templates/upload.html
-    }
-
-    /*────────────────────────────── 2) Procesa el archivo ───────────────────────────────*/
+    /**
+     * Endpoint para subir un archivo y calcular/guardar su hash.
+     * Requiere autenticación (el usuario se infiere del token).
+     */
     @PostMapping("/upload")
-    public String procesarArchivo(@Valid
-                                  @ModelAttribute("fileUploadRequest") FileUploadRequest req, // ‖
-                                  BindingResult br,                                           // ‖
-                                  RedirectAttributes redirect) {
-
-        // a) Validación
-        if (br.hasErrors() || req.getFile().isEmpty()) {
-            redirect.addFlashAttribute("error", "Debes seleccionar un archivo");
-            return "redirect:/upload";
+    public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file,
+                                        Authentication authentication) {
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body("Debes seleccionar un archivo");
         }
-
-        // b) Usuario autenticado
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String username     = auth.getName();
-        AppUser owner = userService.getByUsername(username).orElseThrow();
-
-        // c) Guardar (la lógica de hash va en el servicio)
         try {
-            fileHashService.saveForUser(owner, req.getFile());              // ‖ adaptado
-            redirect.addFlashAttribute("success", "Archivo sellado correctamente");
-        } catch (Exception e) {
-            redirect.addFlashAttribute("error", "ERROR al procesar el archivo: " + e.getMessage());
+            // Obtener usuario actual (del token)
+            String username = authentication.getName();
+            // (Opcional: cargar entidad AppUser si hace falta)
+            // Guardar archivo y obtener DTO
+            FileHashDto savedFileDto = fileHashService.saveForCurrentUser(file);
+            return ResponseEntity.status(201).body(savedFileDto);
+        } catch (IOException e) {
+            return ResponseEntity.status(500).body("Error al leer el archivo");
         }
-
-        return "redirect:/history";   // Post/Redirect/Get
     }
 
-    /*──────────────────────── 3) Historial personal ───────────────────────*/
+    /**
+     * Endpoint para obtener el historial de archivos del usuario actual.
+     * Requiere autenticación.
+     */
     @GetMapping("/history")
-    public String verHistorial(Model model) {
-
-        String username = SecurityContextHolder.getContext()
-                                            .getAuthentication()
-                                            .getName();
-        AppUser owner = userService.getByUsername(username).orElseThrow();
-
-        // ahora obtenemos DTOs
-        model.addAttribute("hashes",
-                fileHashService.findDtosByUser(owner));
-
-        return "history";   // templates/history.html
+    public ResponseEntity<List<FileHashDto>> getHistory(Authentication authentication) {
+        // Authentication trae el principal, podemos usarlo:
+        List<FileHashDto> history = fileHashService.listMineDtos();
+        return ResponseEntity.ok(history);
     }
 }
