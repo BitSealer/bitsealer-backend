@@ -3,6 +3,7 @@ package com.bitsealer.config;
 import com.bitsealer.service.CustomUserDetailsService;
 import com.bitsealer.security.jwt.JwtAuthFilter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -24,6 +25,9 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    @Value("${app.cors.allowed-origins}")
+    private String allowedOriginsCsv;
 
     private final CustomUserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
@@ -68,12 +72,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // Origins permitidos - ajustar según el despliegue
-        config.setAllowedOrigins(List.of("http://localhost:5173"));
-        config.setAllowedMethods(Arrays.asList("GET","POST","PUT","DELETE","OPTIONS"));
-        config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        // Parseamos CSV a lista
+        for (String o : allowedOriginsCsv.split(",")) {
+            config.addAllowedOrigin(o.trim());
+        }
+        config.setAllowedMethods(java.util.Arrays.asList("GET","POST","PUT","DELETE","OPTIONS"));
+        config.setAllowedHeaders(java.util.Arrays.asList("Authorization", "Content-Type"));
         config.setAllowCredentials(true);
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        var source = new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
     }
