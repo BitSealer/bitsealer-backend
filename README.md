@@ -1,5 +1,5 @@
 
-## 🚀 Cómo ejecutar este proyecto en tu ordenador
+## 🚀 Cómo ejecutar este proyecto
 
 ### 🧱 1️⃣ Requisitos previos
 
