@@ -1,21 +1,40 @@
-## Quickstart (Docker)
 
-Requisitos: Docker Desktop (con Compose). En WSL2, habilitar “WSL integration”.
+## 🚀 Cómo ejecutar este proyecto en tu ordenador
+
+### 🧱 1️⃣ Requisitos previos
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop) (Windows/Mac)  
+
+
+### 📥 2️⃣ Clonar el repositorio
+
+Abre una terminal y ejecuta:
 
 ```bash
-git clone https://github.com/tuusuario/bitsealer.git
+git clone https://github.com/BitSealer/bitsealer-backend
 cd bitsealer
 
-# 1) Crear el archivo de entorno a partir del ejemplo:
+### ⚙️ 3️⃣ Crear el archivo `.env`
+
+Copia el ejemplo incluido:
+
+```bash
 cp .env.example .env
-# editar .env y poner:
-# - JWT_SECRET con 32+ caracteres
-# - (opcional) cambiar DB_USER/DB_PASSWORD si quieres
 
-# 2) Arrancar
-docker compose up --build -d
+### 🧩 4️⃣ Construir las imágenes Docker
 
-# 3) Ver logs de la app
+```bash
+docker compose build --no-cache
+docker compose up -d
+
+### Otros comandos
+
+Verificar estado:
+```bash
+docker compose ps
+
+Ver logs de aplicacion:
+```bash
 docker compose logs -f app
 
-# API en http://localhost:8080
+
