@@ -5,36 +5,7 @@ Desarrollado con **Spring Boot 3 + PostgreSQL**, permite gestionar usuarios, cal
 
 ---
 
-## 🚀 Cómo ejecutar este proyecto
-
-### 💻 Opción 1: Ejecutar en local (sin Docker)
-
-#### 🧱 Requisitos previos
-
-- **Java 17** (JDK)
-- **Maven** (opcional, ya se incluye `mvnw`)
-- **PostgreSQL 14+**
-- Crear un archivo `.env` con tus credenciales de base de datos y `JWT_SECRET`  
-  (puedes copiar el `.env.example`)
-
-#### ▶️ Pasos
-
-1️⃣ Compila el proyecto:
-```bash
-./mvnw clean package -DskipTests
-```
-
-2️⃣ Ejecuta la aplicación:
-```bash
-java -jar target/bitsealer-*.jar
-```
-
-> Asegúrate de que PostgreSQL esté corriendo y los valores del `.env` sean correctos.  
-> El servidor se iniciará por defecto en **http://localhost:8080**.
-
----
-
-### 🐳 Opción 2: Ejecutar con Docker
+### 🐳 Ejecutar con Docker
 
 ### 🧱 1️⃣ Requisitos previos
 
