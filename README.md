@@ -5,7 +5,6 @@
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop) (Windows/Mac)  
 
-
 ### 📥 2️⃣ Clonar el repositorio
 
 Abre una terminal y ejecuta:
