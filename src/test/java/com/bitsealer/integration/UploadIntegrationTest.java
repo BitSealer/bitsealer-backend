@@ -1,7 +1,9 @@
 package com.bitsealer.integration;
 
+import com.bitsealer.model.AppUser;
 import com.bitsealer.repository.FileHashRepository;
 import com.bitsealer.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -23,13 +25,34 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class UploadIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
-    MockMvc mvc;
+    private MockMvc mvc;
 
     @Autowired
-    UserRepository userRepo;
+    private UserRepository userRepo;
 
     @Autowired
-    FileHashRepository hashRepo;
+    private FileHashRepository hashRepo;
+
+    @BeforeEach
+    void setUp() {
+        // Limpieza para test repetible
+        hashRepo.deleteAll();
+        userRepo.deleteAll();
+
+        // Creamos el usuario que usará @WithMockUser
+        AppUser user = new AppUser();
+        user.setUsername("alice");
+        user.setEmail("alice@test.local"); // ✅ OBLIGATORIO (NOT NULL)
+        user.setPassword("test");          // da igual en este test
+
+        // ✅ Si tu entidad tiene role NOT NULL, ponlo también:
+        // Si AppUser.role es enum: user.setRole(Role.ROLE_USER);
+        // Si es String:          user.setRole("ROLE_USER");
+        // (elige UNA de las dos líneas según tu tipo real)
+        user.setRole("ROLE_USER");
+
+        userRepo.save(user);
+    }
 
     @Test
     @WithMockUser(username = "alice")
@@ -47,7 +70,7 @@ class UploadIntegrationTest extends BaseIntegrationTest {
         mvc.perform(
                 multipart("/api/files/upload")
                         .file(file)
-                        .with(csrf())   // por si CSRF está activo
+                        .with(csrf())
         ).andExpect(status().isCreated());
 
         long despues = hashRepo.count();

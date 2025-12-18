@@ -87,6 +87,26 @@ class AuthIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @DisplayName("Registro con datos inválidos devuelve 400 + errores de validación")
+    void register_InvalidPayload_Returns400WithErrors() throws Exception {
+        Map<String, String> body = new HashMap<>();
+        body.put("name", "");
+        body.put("email", "not-an-email");
+        body.put("password", "123");
+
+        mvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.errors.name").isNotEmpty())
+                .andExpect(jsonPath("$.errors.email").isNotEmpty())
+                .andExpect(jsonPath("$.errors.password").isNotEmpty());
+
+        assertThat(userRepository.count()).isZero();
+    }
+
+    @Test
     @DisplayName("Login correcto devuelve 200 + JwtResponse")
     void login_Success() throws Exception {
         AppUser user = new AppUser();
@@ -106,6 +126,22 @@ class AuthIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").isNotEmpty())
                 .andExpect(jsonPath("$.refreshToken").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("Login con datos inválidos devuelve 400 + errores de validación")
+    void login_InvalidPayload_Returns400WithErrors() throws Exception {
+        Map<String, String> body = new HashMap<>();
+        body.put("email", "");
+        body.put("password", "");
+
+        mvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.errors.email").isNotEmpty())
+                .andExpect(jsonPath("$.errors.password").isNotEmpty());
     }
 
     @Test
