@@ -1,7 +1,7 @@
 package com.bitsealer.config;
 
-import com.bitsealer.service.CustomUserDetailsService;
 import com.bitsealer.security.jwt.JwtAuthFilter;
+import com.bitsealer.service.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -16,11 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.cors.CorsConfiguration;
-
-import java.util.Arrays;
-import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -42,13 +38,11 @@ public class SecurityConfig {
         this.jwtAuthFilter     = jwtAuthFilter;
     }
 
-    // Autenticación: register CustomUserDetailsService and PasswordEncoder
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
-    // Autorización: definir las reglas de seguridad HTTP
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -56,29 +50,34 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Permitir sin auth los endpoints públicos
                 .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
-                // (Si el backend aún sirviera contenido estático, se permitirían GET a /index.html, /static/**, etc.)
+
+                // ✅ callback del microservicio (sin JWT, protegido por token propio)
+                .requestMatchers(HttpMethod.POST, "/api/stamps/callback").permitAll()
+
                 .requestMatchers(HttpMethod.GET, "/", "/index.html").permitAll()
-                // Cualquier otra petición a /api requiere autenticación
                 .anyRequest().authenticated()
             );
-        // Insertar el filtro JWT antes del filtro de autenticación por contraseña de Spring
+
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
-    // Configuración global de CORS para permitir el front
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // Parseamos CSV a lista
+
         for (String o : allowedOriginsCsv.split(",")) {
             config.addAllowedOrigin(o.trim());
         }
+
         config.setAllowedMethods(java.util.Arrays.asList("GET","POST","PUT","DELETE","OPTIONS"));
-        config.setAllowedHeaders(java.util.Arrays.asList("Authorization", "Content-Type"));
+
+        // ✅ Añadimos X-Stamp-Token por si lo necesitas
+        config.setAllowedHeaders(java.util.Arrays.asList("Authorization", "Content-Type", "X-Stamp-Token"));
+
         config.setAllowCredentials(true);
+
         var source = new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;

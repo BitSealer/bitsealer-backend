@@ -4,12 +4,15 @@ import com.bitsealer.dto.FileHashDto;
 import com.bitsealer.mapper.FileHashMapper;
 import com.bitsealer.model.AppUser;
 import com.bitsealer.model.FileHash;
+import com.bitsealer.model.FileStamp;
+import com.bitsealer.model.StampStatus;
 import com.bitsealer.repository.FileHashRepository;
+import com.bitsealer.repository.FileStampRepository;
 import com.bitsealer.repository.UserRepository;
+import com.bitsealer.exception.UnauthorizedException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor; // Importar para capturar la entidad AppUser
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -22,9 +25,9 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class FileHashServiceTest {
@@ -33,10 +36,16 @@ class FileHashServiceTest {
     private FileHashRepository fileHashRepository;
 
     @Mock
-    private FileHashMapper fileHashMapper;
+    private FileStampRepository fileStampRepository;
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private FileHashMapper fileHashMapper;
+
+    @Mock
+    private StamperClient stamperClient; // 🔹 NUEVO
 
     @InjectMocks
     private FileHashService fileHashService;
@@ -50,46 +59,50 @@ class FileHashServiceTest {
     void listMineDtos_returnsHashesForCurrentUser() {
         // given
         String username = "test@example.com";
-        
-        // 1. Configurar SecurityContext (simulando que el email es el principal)
+
+        // SecurityContext
         UsernamePasswordAuthenticationToken auth =
-                new UsernamePasswordAuthenticationToken(
-                        username,
-                        null,
-                        Collections.emptyList()
-                );
+                new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
         SecurityContextHolder.getContext().setAuthentication(auth);
 
-        // 2. Crear la entidad AppUser que será devuelta por UserRepository
         AppUser user = new AppUser();
         user.setId(1L);
-        // NOTA: Tu servicio busca por username, si el principal es el email, user.setUsername() debe ser el email
-        user.setUsername(username); 
-        
-        // 3. Mockear UserRepository: Cuando se busca por username, devuelve el usuario.
-        given(userRepository.findByUsername(username)).willReturn(Optional.of(user));
+        user.setUsername(username);
 
-        // 4. Crear la entidad FileHash
-        FileHash entity = new FileHash();
-        entity.setId(42L);
-        entity.setFileName("document.pdf"); // Corregido a setFileName (lo que tienes en tu entidad)
-        entity.setSha256("abc123");
-        entity.setCreatedAt(LocalDateTime.of(2025, 1, 1, 12, 0));
+        given(userRepository.findByUsername(username))
+                .willReturn(Optional.of(user));
 
-        // 5. Mockear FileHashRepository: Cuando se busca por la instancia de AppUser, devuelve la lista de entidades.
-        given(fileHashRepository.findByOwnerOrderByCreatedAtDesc(user)) // 🛑 CORREGIDO: Usamos la instancia 'user'
-                .willReturn(List.of(entity));
+        FileHash fileHash = new FileHash();
+        fileHash.setId(42L);
+        fileHash.setFileName("document.pdf");
+        fileHash.setSha256("abc123");
+        fileHash.setCreatedAt(LocalDateTime.of(2025, 1, 1, 12, 0));
 
-        // 6. Crear el DTO y mockear el Mapper
+        given(fileHashRepository.findByOwnerOrderByCreatedAtDesc(user))
+                .willReturn(List.of(fileHash));
+
+        FileStamp stamp = new FileStamp();
+        stamp.setFileHash(fileHash);
+        stamp.setStatus(StampStatus.SEALED);
+        stamp.setSealedAt(LocalDateTime.of(2025, 1, 2, 10, 0));
+
+        given(fileStampRepository.findByFileHash_IdIn(List.of(42L)))
+                .willReturn(List.of(stamp));
+
         FileHashDto dto = new FileHashDto(
-                entity.getId(),
-                entity.getFileName(), 
-                entity.getSha256(),
-                entity.getCreatedAt()
+                fileHash.getId(),
+                fileHash.getFileName(),
+                fileHash.getSha256(),
+                fileHash.getCreatedAt(),
+                100L,
+                "SEALED",
+                stamp.getSealedAt()
         );
-        
-        // El mapper recibe la entidad y devuelve el DTO
-        given(fileHashMapper.toDto(List.of(entity))).willReturn(List.of(dto)); // 🛑 CORREGIDO: Tu mapper acepta una lista
+
+        given(fileHashMapper.toDto(
+                List.of(fileHash),
+                java.util.Map.of(42L, stamp)
+        )).willReturn(List.of(dto));
 
         // when
         List<FileHashDto> result = fileHashService.listMineDtos();
@@ -98,9 +111,30 @@ class FileHashServiceTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0)).isEqualTo(dto);
 
-        // Verificar las llamadas
         then(userRepository).should().findByUsername(username);
-        then(fileHashRepository).should().findByOwnerOrderByCreatedAtDesc(user); // 🛑 CORREGIDO: Usamos la instancia 'user'
-        then(fileHashMapper).should().toDto(List.of(entity));
+        then(fileHashRepository).should().findByOwnerOrderByCreatedAtDesc(user);
+        then(fileStampRepository).should().findByFileHash_IdIn(List.of(42L));
+        then(fileHashMapper).should().toDto(
+                List.of(fileHash),
+                java.util.Map.of(42L, stamp)
+        );
+    }
+
+    @Test
+    void listMineDtos_throwsUnauthorizedException_whenUserNotFound() {
+        // given
+        String username = "unknown@example.com";
+
+        UsernamePasswordAuthenticationToken auth =
+                new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        given(userRepository.findByUsername(username))
+                .willReturn(Optional.empty());
+
+        // when / then
+        assertThatThrownBy(() -> fileHashService.listMineDtos())
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessage("User not found for authenticated principal");
     }
 }

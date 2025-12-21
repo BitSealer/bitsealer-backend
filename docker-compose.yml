@@ -23,12 +23,31 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      stamper:
+        condition: service_started
     env_file: .env
     environment:
       DB_HOST: db
-      # JAVA_OPTS: "-Xms256m -Xmx512m"
+
+      # ✅ Stamper
+      STAMPER_BASE_URL: http://stamper:8000
+      STAMPER_CALLBACK_TOKEN: ${STAMPER_CALLBACK_TOKEN}
     ports:
       - "8080:8080"
+    restart: unless-stopped
+
+  stamper:
+    build:
+      context: ./stamper
+      dockerfile: Dockerfile
+    environment:
+      BACKEND_CALLBACK_URL: http://app:8080/api/stamps/callback
+      STAMPER_CALLBACK_TOKEN: ${STAMPER_CALLBACK_TOKEN}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     restart: unless-stopped
 
 volumes:

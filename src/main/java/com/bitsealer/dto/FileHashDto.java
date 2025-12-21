@@ -7,16 +7,22 @@ public record FileHashDto(
         Long id,
         String originalFilename,
         String sha256,
-        LocalDateTime createdAt
-) {
+        LocalDateTime createdAt,
 
-    // Constructor de conveniencia desde la entidad FileHash
+        // NUEVO
+        Long stampId,
+        String stampStatus,
+        LocalDateTime sealedAt
+) {
     public FileHashDto(FileHash entity) {
         this(
-            entity.getId(),
-            entity.getFileName(),
-            entity.getSha256(),
-            entity.getCreatedAt()
+                entity.getId(),
+                entity.getFileName(),
+                entity.getSha256(),
+                entity.getCreatedAt(),
+                null,
+                null,
+                null
         );
     }
 }

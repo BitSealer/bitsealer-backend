@@ -35,4 +35,11 @@ public class GlobalExceptionHandler {
         body.put("message", "Malformed JSON request");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
+
+    @ExceptionHandler(com.bitsealer.exception.UnauthorizedException.class)
+    public ResponseEntity<Map<String, Object>> handleUnauthorized(com.bitsealer.exception.UnauthorizedException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+    }
 }

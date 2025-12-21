@@ -10,10 +10,29 @@ class JwtUtilsTest {
 
     private JwtUtils buildJwtUtils() {
         JwtUtils jwtUtils = new JwtUtils();
-        // Clave de prueba: respeta el mínimo de 32 caracteres
+        // Clave de prueba: respeta el mínimo de 32 caracteres (bytes)
         String testSecret = "una_clave_de_32_caracteres_minimo_123456";
         ReflectionTestUtils.setField(jwtUtils, "jwtSecret", testSecret);
+        // Validamos inicialización (simulando PostConstruct)
+        ReflectionTestUtils.invokeMethod(jwtUtils, "init");
         return jwtUtils;
+    }
+
+    @Test
+    @DisplayName("Fail fast: lanza excepción si la secret es demasiado corta")
+    void init_ShortSecret_ThrowsException() {
+        JwtUtils jwtUtils = new JwtUtils();
+        // Secret corta
+        ReflectionTestUtils.setField(jwtUtils, "jwtSecret", "short_secret");
+
+        try {
+            ReflectionTestUtils.invokeMethod(jwtUtils, "init");
+            // Si no falla, forzamos error en test
+            org.junit.jupiter.api.Assertions.fail("Debió lanzar IllegalStateException");
+        } catch (Exception e) {
+            assertThat(e).isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("debe tener al menos 32 bytes");
+        }
     }
 
     @Test

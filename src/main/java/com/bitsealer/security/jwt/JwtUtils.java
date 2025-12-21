@@ -4,6 +4,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.SignatureAlgorithm;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -14,13 +15,24 @@ import java.util.Date;
 @Component
 public class JwtUtils {
 
-    @Value("${JWT_SECRET}")
+    @Value("${security.jwt.secret}")
     private String jwtSecret;
 
     // 15 min de validez para access token
     private final long jwtExpirationMs = 15 * 60 * 1000;
     // 7 días para refresh token
     private final long refreshExpirationMs = 7 * 24 * 60 * 60 * 1000;
+
+    @PostConstruct
+    public void init() {
+        if (jwtSecret == null || jwtSecret.isBlank()) {
+            throw new IllegalStateException("JWT secret inválida: 'security.jwt.secret' no puede ser null o vacía.");
+        }
+        if (jwtSecret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException(
+                    "JWT secret inválida: 'security.jwt.secret' debe tener al menos 32 bytes (HS256). Revisa JWT_SECRET/.env");
+        }
+    }
 
     private SecretKey getSigningKey() {
         byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
@@ -51,8 +63,8 @@ public class JwtUtils {
 
     /** Extrae todos los claims del token. */
     public Claims parseTokenClaims(String token) {
-        return Jwts.parser()                    // ✅ nuevo flujo JJWT 0.12.x
-                .verifyWith(getSigningKey())    // clave de verificación
+        return Jwts.parser() // ✅ nuevo flujo JJWT 0.12.x
+                .verifyWith(getSigningKey()) // clave de verificación
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
@@ -71,7 +83,3 @@ public class JwtUtils {
         }
     }
 }
-
-
-
-
