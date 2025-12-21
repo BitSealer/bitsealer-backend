@@ -15,45 +15,52 @@ import java.util.Base64;
 @RequestMapping("/api/stamps")
 public class StampCallbackController {
 
-    private final FileStampRepository stampRepo;
+    private final FileStampRepository fileStampRepository;
     private final String callbackToken;
 
-    public StampCallbackController(FileStampRepository stampRepo,
-                                   @Value("${stamper.callback.token}") String callbackToken) {
-        this.stampRepo = stampRepo;
+    public StampCallbackController(FileStampRepository fileStampRepository,
+                                   @Value("${stamper.callback.token:}") String callbackToken) {
+        this.fileStampRepository = fileStampRepository;
         this.callbackToken = callbackToken;
     }
 
     @PostMapping("/callback")
-    public ResponseEntity<?> callback(@RequestBody StamperCallbackRequest body,
-                                     @RequestHeader(name = "X-Stamp-Token", required = false) String token) {
-
-        if (token == null || !token.equals(callbackToken)) {
-            return ResponseEntity.status(401).body("Invalid callback token");
+    public ResponseEntity<?> callback(
+            @RequestHeader(value = "X-Stamp-Token", required = false) String token,
+            @RequestBody StamperCallbackRequest body
+    ) {
+        if (callbackToken != null && !callbackToken.isBlank()) {
+            if (token == null || !callbackToken.equals(token)) {
+                return ResponseEntity.status(401).build();
+            }
         }
 
-        FileStamp stamp = stampRepo.findById(body.stampId())
-                .orElse(null);
-
-        if (stamp == null) {
-            return ResponseEntity.status(404).body("Stamp not found");
-        }
+        FileStamp stamp = fileStampRepository.findById(body.stampId())
+                .orElseThrow(() -> new RuntimeException("Stamp no encontrado: " + body.stampId()));
 
         String status = body.status() == null ? "" : body.status().trim().toUpperCase();
 
-        if ("SEALED".equals(status)) {
-            stamp.setStatus(StampStatus.SEALED);
-            stamp.setSealedAt(LocalDateTime.now());
-
-            if (body.otsProofB64() != null && !body.otsProofB64().isBlank()) {
-                stamp.setOtsProof(Base64.getDecoder().decode(body.otsProofB64()));
-            }
-        } else {
-            stamp.setStatus(StampStatus.ERROR);
-            stamp.setSealedAt(LocalDateTime.now());
+        // Guardar proof si viene (PENDING o SEALED)
+        if (body.otsProofB64() != null && !body.otsProofB64().isBlank()) {
+            stamp.setOtsProof(Base64.getDecoder().decode(body.otsProofB64()));
         }
 
-        stampRepo.save(stamp);
+        switch (status) {
+            case "PENDING" -> {
+                stamp.setStatus(StampStatus.PENDING);
+                stamp.setSealedAt(null);
+            }
+            case "SEALED" -> {
+                stamp.setStatus(StampStatus.SEALED);
+                stamp.setSealedAt(LocalDateTime.now());
+            }
+            default -> {
+                stamp.setStatus(StampStatus.ERROR);
+                stamp.setSealedAt(LocalDateTime.now());
+            }
+        }
+
+        fileStampRepository.save(stamp);
         return ResponseEntity.ok().build();
     }
 }

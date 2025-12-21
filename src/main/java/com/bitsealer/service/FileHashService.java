@@ -1,6 +1,7 @@
 package com.bitsealer.service;
 
 import com.bitsealer.dto.FileHashDto;
+import com.bitsealer.dto.StamperStampResponse;
 import com.bitsealer.mapper.FileHashMapper;
 import com.bitsealer.model.AppUser;
 import com.bitsealer.model.FileHash;
@@ -12,94 +13,106 @@ import com.bitsealer.repository.UserRepository;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
 public class FileHashService {
 
-    private final FileHashRepository hashRepo;
-    private final FileStampRepository stampRepo;
-    private final UserRepository userRepo;
+    private final FileHashRepository fileHashRepository;
+    private final FileStampRepository fileStampRepository;
+    private final UserRepository userRepository;
     private final FileHashMapper mapper;
     private final StamperClient stamperClient;
 
-    public FileHashService(FileHashRepository hashRepo,
-                           FileStampRepository stampRepo,
-                           UserRepository userRepo,
+    public FileHashService(FileHashRepository fileHashRepository,
+                           FileStampRepository fileStampRepository,
+                           UserRepository userRepository,
                            FileHashMapper mapper,
                            StamperClient stamperClient) {
-        this.hashRepo = hashRepo;
-        this.stampRepo = stampRepo;
-        this.userRepo = userRepo;
+        this.fileHashRepository = fileHashRepository;
+        this.fileStampRepository = fileStampRepository;
+        this.userRepository = userRepository;
         this.mapper = mapper;
         this.stamperClient = stamperClient;
     }
 
-    /**
-     * Guarda hash y crea sello PENDING + dispara el microservicio.
-     */
-    @Transactional
     public FileHashDto saveForCurrentUser(MultipartFile file) throws IOException {
         AppUser owner = getCurrentUser();
 
-        String sha256 = DigestUtils.sha256Hex(file.getInputStream());
+        // Leer bytes UNA vez (evita streams consumidos y permite generar .ots real)
+        byte[] fileBytes = file.getBytes();
+        String sha256 = DigestUtils.sha256Hex(fileBytes);
 
-        FileHash fh = new FileHash();
-        fh.setSha256(sha256);
-        fh.setFileName(file.getOriginalFilename());
-        fh.setOwner(owner);
-        fh.setCreatedAt(LocalDateTime.now());
+        FileHash fileHash = new FileHash();
+        fileHash.setOwner(owner);
+        fileHash.setFileName(file.getOriginalFilename());
+        fileHash.setSha256(sha256);
 
-        FileHash savedHash = hashRepo.save(fh);
+        FileHash saved = fileHashRepository.save(fileHash);
 
-        // Crear sello PENDING
+        // Crear stamp PENDING (pero aún sin proof)
         FileStamp stamp = new FileStamp();
-        stamp.setFileHash(savedHash);
+        stamp.setFileHash(saved);
         stamp.setStatus(StampStatus.PENDING);
-        stamp.setCreatedAt(LocalDateTime.now());
-        FileStamp savedStamp = stampRepo.save(stamp);
+        stamp.setNextCheckAt(LocalDateTime.now()); // para que el scheduler lo coja pronto
 
-        // Disparar microservicio (si falla => marcamos ERROR)
+        FileStamp savedStamp = fileStampRepository.save(stamp);
+
+        // Llamar stamper y GUARDAR el .ots en BD
         try {
-            stamperClient.startStamp(savedStamp.getId(), savedHash.getSha256());
-        } catch (Exception ex) {
-            savedStamp.setStatus(StampStatus.ERROR);
-            savedStamp.setSealedAt(LocalDateTime.now());
-            stampRepo.save(savedStamp);
-            throw ex;
-        }
+            StamperStampResponse resp = stamperClient.stamp(savedStamp.getId(), sha256, file.getOriginalFilename(), fileBytes);
 
-        return mapper.toDto(savedHash, savedStamp);
+            byte[] otsBytes = Base64.getDecoder().decode(resp.otsProofB64());
+            savedStamp.setOtsProof(otsBytes);
+
+            // opcional: si el stamper ya devuelve txid alguna vez
+            if (resp.txid() != null && !resp.txid().isBlank()) {
+                savedStamp.setTxid(resp.txid());
+                savedStamp.setStatus(StampStatus.ANCHORING);
+            } else {
+                savedStamp.setStatus(StampStatus.PENDING);
+            }
+
+            savedStamp.setLastError(null);
+            fileStampRepository.save(savedStamp);
+
+            return mapper.toDto(saved, savedStamp);
+
+        } catch (Exception e) {
+            // Muy importante: si falló /stamp, deja ERROR claro y NO lo intentes upgradear.
+            savedStamp.setStatus(StampStatus.ERROR);
+            savedStamp.setLastError("Fallo al generar ots_proof en /stamp: " + e.getMessage());
+            savedStamp.setNextCheckAt(null);
+            fileStampRepository.save(savedStamp);
+
+            throw e; // para que el cliente se entere (puedes cambiarlo si prefieres 200 + estado ERROR)
+        }
     }
 
-    /**
-     * Lista historial con estado del sello.
-     */
     public List<FileHashDto> listMineDtos() {
-        AppUser current = getCurrentUser();
+        AppUser user = getCurrentUser();
 
-        List<FileHash> files = hashRepo.findByOwnerOrderByCreatedAtDesc(current);
-        if (files.isEmpty()) return List.of();
+        List<FileHash> fileHashes = fileHashRepository.findByOwnerOrderByCreatedAtDesc(user);
+        if (fileHashes.isEmpty()) return List.of();
 
-        List<Long> ids = files.stream().map(FileHash::getId).toList();
-        List<FileStamp> stamps = stampRepo.findByFileHash_IdIn(ids);
+        List<FileStamp> stamps = fileStampRepository.findAllByFileHashIn(fileHashes);
 
         Map<Long, FileStamp> stampByFileHashId = stamps.stream()
-                .collect(Collectors.toMap(s -> s.getFileHash().getId(), s -> s));
+                .collect(Collectors.toMap(s -> s.getFileHash().getId(), s -> s, (a, b) -> a));
 
-        return mapper.toDto(files, stampByFileHashId);
+        return mapper.toDto(fileHashes, stampByFileHashId);
     }
 
     private AppUser getCurrentUser() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepo.findByUsername(username)
-                .orElseThrow(() -> new com.bitsealer.exception.UnauthorizedException(
-                        "User not found for authenticated principal"));
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + username));
     }
 }
