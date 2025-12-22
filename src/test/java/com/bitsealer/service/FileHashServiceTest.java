@@ -1,6 +1,7 @@
 package com.bitsealer.service;
 
 import com.bitsealer.dto.FileHashDto;
+import com.bitsealer.exception.UnauthorizedException;
 import com.bitsealer.mapper.FileHashMapper;
 import com.bitsealer.model.AppUser;
 import com.bitsealer.model.FileHash;
@@ -9,7 +10,6 @@ import com.bitsealer.model.StampStatus;
 import com.bitsealer.repository.FileHashRepository;
 import com.bitsealer.repository.FileStampRepository;
 import com.bitsealer.repository.UserRepository;
-import com.bitsealer.exception.UnauthorizedException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,6 +22,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,7 +46,7 @@ class FileHashServiceTest {
     private FileHashMapper fileHashMapper;
 
     @Mock
-    private StamperClient stamperClient; // 🔹 NUEVO
+    private StamperClient stamperClient;
 
     @InjectMocks
     private FileHashService fileHashService;
@@ -60,7 +61,6 @@ class FileHashServiceTest {
         // given
         String username = "test@example.com";
 
-        // SecurityContext
         UsernamePasswordAuthenticationToken auth =
                 new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
         SecurityContextHolder.getContext().setAuthentication(auth);
@@ -78,15 +78,18 @@ class FileHashServiceTest {
         fileHash.setSha256("abc123");
         fileHash.setCreatedAt(LocalDateTime.of(2025, 1, 1, 12, 0));
 
+        List<FileHash> fileHashes = List.of(fileHash);
+
         given(fileHashRepository.findByOwnerOrderByCreatedAtDesc(user))
-                .willReturn(List.of(fileHash));
+                .willReturn(fileHashes);
 
         FileStamp stamp = new FileStamp();
         stamp.setFileHash(fileHash);
         stamp.setStatus(StampStatus.SEALED);
         stamp.setSealedAt(LocalDateTime.of(2025, 1, 2, 10, 0));
 
-        given(fileStampRepository.findByFileHash_IdIn(List.of(42L)))
+        // 👇 ESTE es el método real que usa el service
+        given(fileStampRepository.findAllByFileHashIn(fileHashes))
                 .willReturn(List.of(stamp));
 
         FileHashDto dto = new FileHashDto(
@@ -99,10 +102,10 @@ class FileHashServiceTest {
                 stamp.getSealedAt()
         );
 
-        given(fileHashMapper.toDto(
-                List.of(fileHash),
-                java.util.Map.of(42L, stamp)
-        )).willReturn(List.of(dto));
+        Map<Long, FileStamp> stampMap = Map.of(42L, stamp);
+
+        given(fileHashMapper.toDto(fileHashes, stampMap))
+                .willReturn(List.of(dto));
 
         // when
         List<FileHashDto> result = fileHashService.listMineDtos();
@@ -113,11 +116,8 @@ class FileHashServiceTest {
 
         then(userRepository).should().findByUsername(username);
         then(fileHashRepository).should().findByOwnerOrderByCreatedAtDesc(user);
-        then(fileStampRepository).should().findByFileHash_IdIn(List.of(42L));
-        then(fileHashMapper).should().toDto(
-                List.of(fileHash),
-                java.util.Map.of(42L, stamp)
-        );
+        then(fileStampRepository).should().findAllByFileHashIn(fileHashes);
+        then(fileHashMapper).should().toDto(fileHashes, stampMap);
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.bitsealer.service;
 
 import com.bitsealer.dto.FileHashDto;
 import com.bitsealer.dto.StamperStampResponse;
+import com.bitsealer.exception.UnauthorizedException;
 import com.bitsealer.mapper.FileHashMapper;
 import com.bitsealer.model.AppUser;
 import com.bitsealer.model.FileHash;
@@ -46,7 +47,6 @@ public class FileHashService {
     public FileHashDto saveForCurrentUser(MultipartFile file) throws IOException {
         AppUser owner = getCurrentUser();
 
-        // Leer bytes UNA vez (evita streams consumidos y permite generar .ots real)
         byte[] fileBytes = file.getBytes();
         String sha256 = DigestUtils.sha256Hex(fileBytes);
 
@@ -57,22 +57,19 @@ public class FileHashService {
 
         FileHash saved = fileHashRepository.save(fileHash);
 
-        // Crear stamp PENDING (pero aún sin proof)
         FileStamp stamp = new FileStamp();
         stamp.setFileHash(saved);
         stamp.setStatus(StampStatus.PENDING);
-        stamp.setNextCheckAt(LocalDateTime.now()); // para que el scheduler lo coja pronto
+        stamp.setNextCheckAt(LocalDateTime.now());
 
         FileStamp savedStamp = fileStampRepository.save(stamp);
 
-        // Llamar stamper y GUARDAR el .ots en BD
         try {
             StamperStampResponse resp = stamperClient.stamp(savedStamp.getId(), sha256, file.getOriginalFilename(), fileBytes);
 
             byte[] otsBytes = Base64.getDecoder().decode(resp.otsProofB64());
             savedStamp.setOtsProof(otsBytes);
 
-            // opcional: si el stamper ya devuelve txid alguna vez
             if (resp.txid() != null && !resp.txid().isBlank()) {
                 savedStamp.setTxid(resp.txid());
                 savedStamp.setStatus(StampStatus.ANCHORING);
@@ -86,13 +83,11 @@ public class FileHashService {
             return mapper.toDto(saved, savedStamp);
 
         } catch (Exception e) {
-            // Muy importante: si falló /stamp, deja ERROR claro y NO lo intentes upgradear.
             savedStamp.setStatus(StampStatus.ERROR);
             savedStamp.setLastError("Fallo al generar ots_proof en /stamp: " + e.getMessage());
             savedStamp.setNextCheckAt(null);
             fileStampRepository.save(savedStamp);
-
-            throw e; // para que el cliente se entere (puedes cambiarlo si prefieres 200 + estado ERROR)
+            throw e;
         }
     }
 
@@ -113,6 +108,6 @@ public class FileHashService {
     private AppUser getCurrentUser() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + username));
+                .orElseThrow(() -> new UnauthorizedException("User not found for authenticated principal"));
     }
 }

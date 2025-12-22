@@ -64,6 +64,7 @@ public class StampRecheckService {
         stamp.setLastCheckedAt(now);
         stamp.setAttempts(stamp.getAttempts() + 1);
 
+        // sin proof, imposible upgradear
         if (stamp.getOtsProof() == null || stamp.getOtsProof().length == 0) {
             stamp.setStatus(StampStatus.ERROR);
             stamp.setLastError("No hay ots_proof guardado; imposible hacer upgrade");
@@ -75,45 +76,80 @@ public class StampRecheckService {
         try {
             StamperUpgradeResponse resp = stamperClient.upgrade(stamp.getId(), stamp.getOtsProof());
 
-            if (resp != null) {
-                if (resp.otsProofB64() != null && !resp.otsProofB64().isBlank()) {
-                    stamp.setOtsProof(Base64.getDecoder().decode(resp.otsProofB64()));
-                }
-                if (resp.txid() != null && !resp.txid().isBlank()) {
-                    stamp.setTxid(resp.txid());
-                }
+            if (resp == null) {
+                stamp.setLastError("Respuesta vacía del stamper");
+                stamp.setStatus(statusFromTxid(stamp.getTxid()));
+                stamp.setNextCheckAt(now.plusSeconds(computeBackoffSeconds(stamp.getAttempts())));
+                fileStampRepository.save(stamp);
+                return;
+            }
 
-                StampStatus newStatus = mapStatus(resp.status());
-                stamp.setStatus(newStatus);
+            // actualizar proof
+            if (resp.otsProofB64() != null && !resp.otsProofB64().isBlank()) {
+                stamp.setOtsProof(Base64.getDecoder().decode(resp.otsProofB64()));
+            }
 
-                if (newStatus == StampStatus.SEALED) {
-                    if (stamp.getSealedAt() == null) stamp.setSealedAt(now);
-                    stamp.setNextCheckAt(null);
-                    stamp.setLastError(null);
-                } else {
-                    stamp.setNextCheckAt(now.plusSeconds(computeBackoffSeconds(stamp.getAttempts())));
-                    stamp.setLastError(null);
-                }
+            // guardar txid SOLO si es válido (y no pisar con vacío)
+            String incomingTxid = normalizeTxid(resp.txid());
+            if (incomingTxid != null) {
+                stamp.setTxid(incomingTxid);
+            }
+
+            // status: si viene mal o null, deriva por (sealed? / txid?)
+            StampStatus newStatus = mapStatus(resp.status());
+            if (newStatus == null) {
+                newStatus = statusFromTxid(stamp.getTxid());
+            }
+
+            stamp.setStatus(newStatus);
+
+            if (newStatus == StampStatus.SEALED) {
+                if (stamp.getSealedAt() == null) stamp.setSealedAt(now);
+                stamp.setNextCheckAt(null);
+                stamp.setLastError(null);
+            } else {
+                stamp.setSealedAt(null);
+                stamp.setNextCheckAt(now.plusSeconds(computeBackoffSeconds(stamp.getAttempts())));
+                stamp.setLastError(null);
             }
 
         } catch (Exception e) {
-            log.warn("Recheck failed stampId={}: {}", stamp.getId(), e.getMessage());
-            stamp.setStatus(StampStatus.ERROR);
-            stamp.setLastError(e.getMessage());
+            // Si el stamper está caído: NO ERROR permanente
+            String msg = (e.getMessage() != null && !e.getMessage().isBlank())
+                    ? e.getMessage()
+                    : e.getClass().getSimpleName();
+
+            log.warn("Recheck failed stampId={}: {}", stamp.getId(), msg);
+
+            stamp.setLastError(msg);
+            stamp.setStatus(statusFromTxid(stamp.getTxid()));
             stamp.setNextCheckAt(now.plusSeconds(computeBackoffSeconds(stamp.getAttempts())));
         }
 
         fileStampRepository.save(stamp);
     }
 
+    private String normalizeTxid(String txid) {
+        if (txid == null) return null;
+        String t = txid.trim();
+        if (t.isEmpty()) return null;
+        if (!t.matches("^[0-9a-fA-F]{64}$")) return null;
+        return t.toLowerCase();
+    }
+
+    private StampStatus statusFromTxid(String txid) {
+        return (txid != null && !txid.isBlank()) ? StampStatus.ANCHORING : StampStatus.PENDING;
+    }
+
     private StampStatus mapStatus(String status) {
-        if (status == null) return StampStatus.PENDING;
+        if (status == null) return null;
         String s = status.trim().toUpperCase();
         return switch (s) {
             case "SEALED" -> StampStatus.SEALED;
             case "ANCHORING" -> StampStatus.ANCHORING;
             case "PENDING" -> StampStatus.PENDING;
-            default -> StampStatus.PENDING;
+            case "ERROR" -> StampStatus.ERROR;
+            default -> null;
         };
     }
 
