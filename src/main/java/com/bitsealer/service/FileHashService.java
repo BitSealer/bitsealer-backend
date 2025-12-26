@@ -85,7 +85,8 @@ public class FileHashService {
         } catch (Exception e) {
             savedStamp.setStatus(StampStatus.ERROR);
             savedStamp.setLastError("Fallo al generar ots_proof en /stamp: " + e.getMessage());
-            savedStamp.setNextCheckAt(null);
+            //si el stamper esta caido reintenta en 5min
+            savedStamp.setNextCheckAt(LocalDateTime.now().plusMinutes(5));
             fileStampRepository.save(savedStamp);
             throw e;
         }
