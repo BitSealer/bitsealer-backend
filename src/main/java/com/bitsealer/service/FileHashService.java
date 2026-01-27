@@ -1,5 +1,6 @@
 package com.bitsealer.service;
 
+import com.bitsealer.dto.FileHashDetailsDto;
 import com.bitsealer.dto.FileHashDto;
 import com.bitsealer.dto.StamperStampResponse;
 import com.bitsealer.exception.UnauthorizedException;
@@ -14,6 +15,7 @@ import com.bitsealer.repository.UserRepository;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -21,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 @Service
@@ -85,7 +88,7 @@ public class FileHashService {
         } catch (Exception e) {
             savedStamp.setStatus(StampStatus.ERROR);
             savedStamp.setLastError("Fallo al generar ots_proof en /stamp: " + e.getMessage());
-            //si el stamper esta caido reintenta en 5min
+            // si el stamper esta caido reintenta en 5min
             savedStamp.setNextCheckAt(LocalDateTime.now().plusMinutes(5));
             fileStampRepository.save(savedStamp);
             throw e;
@@ -104,6 +107,28 @@ public class FileHashService {
                 .collect(Collectors.toMap(s -> s.getFileHash().getId(), s -> s, (a, b) -> a));
 
         return mapper.toDto(fileHashes, stampByFileHashId);
+    }
+
+    /**
+     * Devuelve el detalle enriquecido de un FileHash del usuario actual.
+     * Se usa en la vista: /history/:id
+     *
+     * IMPORTANTE:
+     * - el mapper accede a fh.getOwner().getUsername()
+     * - owner es LAZY en JPA, así que necesitamos sesión abierta
+     * - por eso este método va con @Transactional(readOnly = true)
+     */
+    @Transactional(readOnly = true)
+    public FileHashDetailsDto getMineDetails(Long fileHashId) {
+        AppUser user = getCurrentUser();
+
+        FileHash fh = fileHashRepository.findByIdAndOwner(fileHashId, user)
+                .orElseThrow(() -> new NoSuchElementException("FileHash no encontrado"));
+
+        FileStamp stamp = fileStampRepository.findByFileHash_Id(fh.getId()).orElse(null);
+
+        // Ahora el mapper puede acceder a owner sin LazyInitializationException
+        return mapper.toDetailsDto(fh, stamp);
     }
 
     private AppUser getCurrentUser() {

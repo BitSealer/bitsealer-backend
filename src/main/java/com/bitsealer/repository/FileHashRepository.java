@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface FileHashRepository extends JpaRepository<FileHash, Long> {
@@ -18,4 +19,6 @@ public interface FileHashRepository extends JpaRepository<FileHash, Long> {
     // (Opcional) Contadores
     long countByOwner(AppUser owner);
     long countByOwnerAndCreatedAtAfter(AppUser owner, java.time.LocalDateTime date);
+
+    Optional<FileHash> findByIdAndOwner(Long id, AppUser owner);
 }

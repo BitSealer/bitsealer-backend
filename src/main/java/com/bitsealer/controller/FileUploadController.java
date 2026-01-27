@@ -1,5 +1,6 @@
 package com.bitsealer.controller;
 
+import com.bitsealer.dto.FileHashDetailsDto;
 import com.bitsealer.dto.FileHashDto;
 import com.bitsealer.service.FileHashService;
 import com.bitsealer.service.UserService;
@@ -11,6 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @RestController
 @RequestMapping("/api/files")
@@ -56,5 +58,22 @@ public class FileUploadController {
         // Authentication trae el principal, podemos usarlo:
         List<FileHashDto> history = fileHashService.listMineDtos();
         return ResponseEntity.ok(history);
+    }
+
+    /**
+     * Vista detalle: devuelve toda la info disponible del hash (y su sello).
+     *
+     * NOTA: El .ots y el PDF se descargan por endpoints blob:
+     *  - GET /api/files/{id}/ots
+     *  - GET /api/files/{id}/certificate
+     */
+    @GetMapping("/{fileHashId}")
+    public ResponseEntity<?> getFileDetails(@PathVariable Long fileHashId) {
+        try {
+            FileHashDetailsDto dto = fileHashService.getMineDetails(fileHashId);
+            return ResponseEntity.ok(dto);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(404).body("Hash no encontrado");
+        }
     }
 }
