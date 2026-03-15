@@ -32,12 +32,13 @@ public class UserService {
         }
         userRepository.findByUsername(user.getUsername())
             .ifPresent(u -> { throw new IllegalArgumentException("El nombre de usuario ya está en uso."); });
-        // Cifrar contraseña
+
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        // Rol por defecto
+
         if (user.getRole() == null) {
             user.setRole("ROLE_USER");
         }
+
         return userRepository.save(user);
     }
 
@@ -52,5 +53,21 @@ public class UserService {
 
     public Optional<AppUser> getByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+
+    public AppUser getRequiredByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
+    }
+
+    public void updatePassword(String username, String currentPassword, String newPassword) {
+        AppUser user = getRequiredByUsername(username);
+
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new IllegalArgumentException("La contraseña actual no es correcta.");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
     }
 }
